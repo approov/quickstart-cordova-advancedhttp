@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<plugin xmlns="http://www.phonegap.com/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="@approov/cordova-plugin-advanced-http" version="3.0.2">
+<plugin xmlns="http://www.phonegap.com/ns/plugins/1.0" xmlns:android="http://schemas.android.com/apk/res/android" id="@approov/cordova-plugin-advanced-http" version="3.1.0">
   <name>Advanced HTTP plugin</name>
   <description>
         Cordova / Phonegap plugin for communicating with HTTP servers with Approov and dynamic SSL pinning
@@ -64,7 +64,7 @@
       <config>
       </config>
       <pods use-frameworks="true">
-        <pod name="approov-ios-sdk-bitcode" options="'3.0.0', :source => 'https://github.com/approov/approov-ios-sdk-bitcode.git'" />
+        <pod name="approov-ios-sdk-bitcode" options="'3.1.0', :source => 'https://github.com/approov/approov-ios-sdk-bitcode.git'" />
       </pods>
     </podspec>
   </platform>

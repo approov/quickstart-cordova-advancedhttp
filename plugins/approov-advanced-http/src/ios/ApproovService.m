@@ -847,6 +847,10 @@ static NSDictionary<NSString *, NSDictionary<NSNumber *, NSData *> *> *spkiHeade
         0x30, 0x82, 0x01, 0x22, 0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05,
         0x00, 0x03, 0x82, 0x01, 0x0f, 0x00
     };
+    const unsigned char rsa3072SPKIHeader[] = {
+        0x30, 0x82, 0x01, 0xa2, 0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05,
+        0x00, 0x03, 0x82, 0x01, 0x8f, 0x00
+    };
     const unsigned char rsa4096SPKIHeader[] = {
         0x30, 0x82, 0x02, 0x22, 0x30, 0x0d, 0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01, 0x05,
         0x00, 0x03, 0x82, 0x02, 0x0f, 0x00
@@ -862,6 +866,7 @@ static NSDictionary<NSString *, NSDictionary<NSNumber *, NSData *> *> *spkiHeade
     spkiHeaders = @{
         (NSString *)kSecAttrKeyTypeRSA : @{
             @2048 : [NSData dataWithBytes:rsa2048SPKIHeader length:sizeof(rsa2048SPKIHeader)],
+            @3072 : [NSData dataWithBytes:rsa3072SPKIHeader length:sizeof(rsa3072SPKIHeader)],
             @4096 : [NSData dataWithBytes:rsa4096SPKIHeader length:sizeof(rsa4096SPKIHeader)]
         },
         (NSString *)kSecAttrKeyTypeECSECPrimeRandom : @{
@@ -894,11 +899,19 @@ static NSDictionary<NSString *, NSDictionary<NSNumber *, NSData *> *> *spkiHeade
     }
 
     // check the validity of the server trust
-    SecTrustResultType result;
-    OSStatus status = SecTrustEvaluate(serverTrust, &result);
-    if (errSecSuccess != status) {
-        completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, nil);
-        return;
+    if (@available(iOS 12.0, *)) {
+        if (!SecTrustEvaluateWithError(serverTrust, nil)) {
+            completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, nil);
+            return;
+        }
+    }
+    else {
+        SecTrustResultType result;
+        OSStatus status = SecTrustEvaluate(serverTrust, &result);
+        if (errSecSuccess != status) {
+            completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, nil);
+            return;
+        }
     }
 
     // get the Approov pins for the domain
@@ -917,30 +930,32 @@ static NSDictionary<NSString *, NSDictionary<NSNumber *, NSData *> *> *spkiHeade
     }
 
     // check public key hash of all certificates in the chain, leaf certificate first
-    for (int certIndex = 0; certIndex < SecTrustGetCertificateCount(serverTrust); certIndex += 1) {
-        // get the certificate
+    CFIndex numCerts = SecTrustGetCertificateCount(serverTrust);
+    for (int certIndex = 0; certIndex < numCerts; certIndex++) {
+        // get the certificate - note that this function is now deprecated from iOS 15 but the
+        // replacement is only available from iOS 15 and has a very different interface so we
+        // are not able to use it yet
         SecCertificateRef serverCert = SecTrustGetCertificateAtIndex(serverTrust, certIndex);
         if (!serverCert) {
             completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, nil);
             return;
         }
 
-        // get the subject public key info from the certificate
+        // get the subject public key info from the certificate - we just ignore the certificate if we
+        // cannot obtain this in case it is a certificate type that is not supported but is not pinned
+        // to anyway
         NSData *publicKeyInfo = [ApproovService publicKeyInfoOfCertificate:serverCert];
-        if (!publicKeyInfo) {
-            completionHandler(NSURLSessionAuthChallengeCancelAuthenticationChallenge, nil);
-            return;
-        }
+        if (publicKeyInfo != nil) {
+            // compute the SHA-256 hash of the public key info
+            NSData *publicKeyInfoHash = [ApproovService sha256:publicKeyInfo];
+            NSString *publicKeyInfoHashB64 = [publicKeyInfoHash base64EncodedStringWithOptions:0];
 
-        // compute the SHA-256 hash of the public key info
-        NSData *publicKeyInfoHash = [ApproovService sha256:publicKeyInfo];
-        NSString *publicKeyInfoHashB64 = [publicKeyInfoHash base64EncodedStringWithOptions:0];
-
-        // check that the hash is the same as at least one of the pins
-        for (NSString* pinHashB64 in pinsForDomain) {
-            if ([publicKeyInfoHashB64 isEqual:pinHashB64]) {
-                completionHandler(NSURLSessionAuthChallengeUseCredential, [NSURLCredential credentialForTrust:serverTrust]);
-                return;
+            // check that the hash is the same as at least one of the pins
+            for (NSString* pinHashB64 in pinsForDomain) {
+                if ([publicKeyInfoHashB64 isEqual:pinHashB64]) {
+                    completionHandler(NSURLSessionAuthChallengeUseCredential, [NSURLCredential credentialForTrust:serverTrust]);
+                    return;
+                }
             }
         }
     }
@@ -953,7 +968,7 @@ static NSDictionary<NSString *, NSDictionary<NSNumber *, NSData *> *> *spkiHeade
  * Gets the subject public key info (SPKI) header depending on a public key's type and size.
  * 
  * @param publicKey is the public key being analyzed
- * @return NSData* of the coresponding SPKI header that will be used
+ * @return NSData* of the coresponding SPKI header that will be used or nil if not supported
  */
 + (NSData *)publicKeyInfoHeaderForKey:(SecKeyRef)publicKey {
     CFDictionaryRef publicKeyAttributes = SecKeyCopyAttributes(publicKey);
@@ -968,7 +983,7 @@ static NSDictionary<NSString *, NSDictionary<NSNumber *, NSData *> *> *spkiHeade
  * Gets a certificate's Subject Public Key Info (SPKI).
  *
  * @param certificate is the certificate being analyzed
- * @return NSData* of the SPKI certificate information
+ * @return NSData* of the SPKI certificate information or nil if an error
  */
 + (NSData *)publicKeyInfoOfCertificate:(SecCertificateRef)certificate {
     // get the public key from the certificate
@@ -990,14 +1005,16 @@ static NSDictionary<NSString *, NSDictionary<NSNumber *, NSData *> *> *spkiHeade
             return nil;
         }
 
-        // get a public key reference for the certificate from the trust
+        // check the trust is valid
         SecTrustResultType result;
-        status = SecTrustEvaluate(trust, &result);
+        status = SecTrustEvaluateWithError(trust, &result);
         if (status != errSecSuccess) {
             CFRelease(policy);
             CFRelease(trust);
             return nil;
         }
+
+        // get a public key reference for the certificate from the trust
         publicKey = SecTrustCopyPublicKey(trust);
         CFRelease(policy);
         CFRelease(trust);
