@@ -1007,7 +1007,7 @@ static NSDictionary<NSString *, NSDictionary<NSNumber *, NSData *> *> *spkiHeade
 
         // check the trust is valid
         SecTrustResultType result;
-        status = SecTrustEvaluateWithError(trust, &result);
+        status = SecTrustEvaluate(trust, &result);
         if (status != errSecSuccess) {
             CFRelease(policy);
             CFRelease(trust);
