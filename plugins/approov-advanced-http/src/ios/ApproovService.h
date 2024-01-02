@@ -50,6 +50,7 @@
 
 - (ApproovResult *_Nonnull)initialize:(NSString *_Nonnull)config;
 - (void)setProceedOnNetworkFail;
+- (ApproovResult *_Nonnull)setDevKey:(NSString *_Nonnull)devKey;
 - (void)setTokenHeader:(NSString *_Nonnull)header prefix:(NSString *_Nonnull)prefix;
 - (void)setBindingHeader:(NSString *_Nonnull)newHeader;
 - (void)addSubstitutionHeader:(NSString *_Nonnull)header requiredPrefix:(NSString *_Nonnull)requiredPrefix;

@@ -75,6 +75,12 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
+- (void) approovSetDevKey:(CDVInvokedUrlCommand*)command {
+    NSString *devKey = [command.arguments objectAtIndex:0];
+    ApproovResult *result = [approovService setDevKey:devKey];
+    [self processApproovResult:result command:command];
+}
+
 - (void) approovSetTokenHeader:(CDVInvokedUrlCommand*)command {
     NSString *header = [command.arguments objectAtIndex:0];
     NSString *prefix = [command.arguments objectAtIndex:1];

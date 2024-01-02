@@ -30,7 +30,7 @@ Note that this should be used with *CAUTION* because it may allow a connection t
 [Sets a development key](https://approov.io/docs/latest/approov-usage-documentation/#using-a-development-key) in order to force an app to be passed. This can be used if the app has to be resigned in a test environment and would thus fail attestation otherwise.
 
 ```Javascript
-cordova.plugin.http.approovSetDevKey(devKey;
+cordova.plugin.http.approovSetDevKey(devKey);
 ```
 
 ## SetTokenHeader

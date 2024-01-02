@@ -18,6 +18,7 @@
 - (void)abort:(CDVInvokedUrlCommand*)command;
 - (void)approovInitialize:(CDVInvokedUrlCommand*)command;
 - (void)approovSetProceedOnNetworkFail:(CDVInvokedUrlCommand*)command;
+- (void)approovSetDevKey:(CDVInvokedUrlCommand*)command;
 - (void)approovTokenHeader:(CDVInvokedUrlCommand*)command;
 - (void)approovAddSubstitutionHeader:(CDVInvokedUrlCommand*)command;
 - (void)approovRemoveSubstitutionHeader:(CDVInvokedUrlCommand*)command;

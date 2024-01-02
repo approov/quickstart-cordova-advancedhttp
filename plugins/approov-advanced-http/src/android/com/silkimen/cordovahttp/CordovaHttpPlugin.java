@@ -115,6 +115,8 @@ public class CordovaHttpPlugin extends CordovaPlugin implements Observer {
       return approovInitialize(args.getString(0), callbackContext);
     } else if ("approovSetProceedOnNetworkFail".equals(action)) {
       return approovSetProceedOnNetworkFail(callbackContext);
+    } else if ("approovSetDevKey".equals(action)) {
+      return approovSetDevKey(args.getString(0), callbackContext);
     } else if ("approovSetTokenHeader".equals(action)) {
       return approovSetTokenHeader(args.getString(0), args.getString(1), callbackContext);
     } else if ("approovSetBindingHeader".equals(action)) {
@@ -185,6 +187,12 @@ public class CordovaHttpPlugin extends CordovaPlugin implements Observer {
   public boolean approovSetProceedOnNetworkFail(final CallbackContext callbackContext) {
     this.approovService.setProceedOnNetworkFail();
     callbackContext.success();
+    return true;
+  }
+
+  public boolean approovSetDevKey(String devKey, final CallbackContext callbackContext) {
+    ApproovResult result = this.approovService.setDevKey(devKey);
+    processApproovResult(result, callbackContext);
     return true;
   }
 
