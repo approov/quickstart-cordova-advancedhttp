@@ -35,6 +35,7 @@ module.exports = function init(exec, cookieHandler, urlUtil, helpers, globalConf
     abort: abort,
     approovInitialize: approovInitialize,
     approovSetProceedOnNetworkFail: approovSetProceedOnNetworkFail,
+    approovSetDevKey: approovSetDevKey,
     approovSetTokenHeader: approovSetTokenHeader,
     approovSetBindingHeader: approovSetBindingHeader,
     approovAddSubstitutionHeader: approovAddSubstitutionHeader,
@@ -261,6 +262,12 @@ module.exports = function init(exec, cookieHandler, urlUtil, helpers, globalConf
 
   function approovSetProceedOnNetworkFail(success, failure) {
     exec(success, failure, "CordovaHttpPlugin", "approovSetProceedOnNetworkFail");
+  }
+
+  function approovSetDevKey(devKey, success, failure) {
+    exec(success, failure, "CordovaHttpPlugin", "approovSetDevKey", [
+      devKey,
+    ]);
   }
 
   function approovSetTokenHeader(header, prefix, success, failure) {
